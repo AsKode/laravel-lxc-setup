@@ -140,6 +140,7 @@ ufw default allow outgoing
 ufw allow ssh
 ufw allow 80/tcp
 ufw allow 443/tcp
+ufw allow 5173/tcp
 ufw --force enable
 print_status "Firewall configured"
 
