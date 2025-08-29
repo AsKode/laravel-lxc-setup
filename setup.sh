@@ -299,39 +299,44 @@ server {
     listen 80;
     server_name $PROJECT_NAME $CONTAINER_IP;
     root /var/www/$PROJECT_NAME/public;
-    index index.php index.html index.htm;
-
-    location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
-    }
-
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        include fastcgi_params;
-    }
-
-    location ~ /\.ht {
-        deny all;
-    }
-
+        add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-Content-Type-Options "nosniff";
+    
+    index index.php;
+    charset utf-8;
+    
+    # phpMyAdmin cu procesare completă PHP
     location /phpmyadmin {
-        alias /var/www/html/phpmyadmin;
-        index index.php index.html index.htm;
-
-        location ~ ^/phpmyadmin/(.+\.php)$ {
-            alias /var/www/html/phpmyadmin/\$1;
+        alias /usr/share/phpmyadmin;
+        index index.php index.html;
+        
+        location ~ \.php$ {
             fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;
-            fastcgi_param SCRIPT_FILENAME \$request_filename;
+            fastcgi_param SCRIPT_FILENAME $request_filename;
             include fastcgi_params;
+            fastcgi_hide_header X-Powered-By;
         }
-
-        location ~* ^/phpmyadmin/(.+\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))$ {
-            alias /var/www/html/phpmyadmin/\$1;
-            expires 1y;
-            add_header Cache-Control "public, immutable";
-        }
+    }
+    
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+    
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt { access_log off; log_not_found off; }
+    
+    error_page 404 /index.php;
+    
+    # Laravel
+    location ~ ^/index\.php(/|$) {
+        fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+    
+    location ~ /\.(?!well-known).* {
+        deny all;
     }
 }
 EOF
